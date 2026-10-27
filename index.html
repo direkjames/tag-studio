@@ -1,0 +1,1172 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tag Studio</title>
+<meta name="description" content="Tag Studio is a free rank tag maker for Minecraft servers. Design pixel tags with colors, gradients and flowers, then export a transparent PNG and the config for Nexo, ItemsAdder or Oraxen.">
+<meta name="theme-color" content="#0a0a0f">
+<meta property="og:title" content="Tag Studio">
+<meta property="og:description" content="Make pixel rank tags for your Minecraft server. Works with Nexo, ItemsAdder and Oraxen.">
+<meta property="og:type" content="website">
+<meta property="og:image" content="https://direkjames.github.io/tag-studio/icon-512.png">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="icon" href="favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" defer></script>
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0a0a0f; --panel: #13131b; --panel2: #1a1a24; --line: #272736; --text: #ececf2; --muted: #8b8b9c;
+    --gold1: #f7dc86; --gold2: #c8962e; --accent: linear-gradient(135deg, var(--gold1), var(--gold2));
+    --r: 10px;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: radial-gradient(1200px 600px at 70% -10%, #1d1730 0%, transparent 60%), var(--bg); color: var(--text); font: 14px/1.4 Inter, system-ui, sans-serif; }
+  button, input, select { font: inherit; color: inherit; }
+  button { cursor: pointer; }
+
+  .top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 20px; border-bottom: 1px solid var(--line); background: #0d0d14cc; backdrop-filter: blur(8px); position: sticky; top: 0; z-index: 10; }
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .logo { width: 36px; height: 36px; image-rendering: pixelated; }
+  .brand b { display: block; font-size: 16px; letter-spacing: .2px; }
+  .brand small { color: var(--muted); }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  .btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); font-weight: 500; }
+  .btn:hover { border-color: #3b3b52; }
+  .btn.primary { background: var(--accent); color: #1b1305; border: 0; font-weight: 700; }
+  .btn.small { padding: 5px 10px; font-size: 12px; }
+
+  .app { display: grid; grid-template-columns: 400px 1fr; gap: 20px; padding: 20px; max-width: 1500px; margin: 0 auto; align-items: start; }
+  #controls { display: flex; flex-direction: column; gap: 10px; }
+  .stage { display: flex; flex-direction: column; gap: 14px; position: sticky; top: 76px; min-width: 0; }
+  @media (max-width: 960px) { .app { grid-template-columns: 1fr; padding: 12px; } .stage { position: static; order: -1; } }
+
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); }
+  summary { padding: 12px 14px; cursor: pointer; font-weight: 600; list-style: none; display: flex; justify-content: space-between; }
+  summary::after { content: "+"; color: var(--muted); }
+  details[open] > summary::after { content: "–"; }
+  .body { padding: 2px 14px 14px; display: flex; flex-direction: column; gap: 12px; }
+  .row > label { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+  .row > label output { color: var(--text); font-variant-numeric: tabular-nums; }
+  .row.chk label { display: flex; gap: 8px; align-items: center; color: var(--text); font-size: 13px; margin: 0; }
+  .row.hidden { display: none; }
+  .row.inline { display: flex; align-items: center; justify-content: space-between; }
+  .row.inline > label { margin: 0; }
+  input[type=text], select { width: 100%; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel2); }
+  input[type=range] { width: 100%; accent-color: #d9a93a; margin: 0; }
+  input[type=color] { width: 44px; height: 30px; padding: 0; border: 1px solid var(--line); border-radius: 6px; background: none; cursor: pointer; }
+  .hint { color: var(--muted); font-size: 12px; }
+
+  .seg { display: flex; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 3px; gap: 3px; }
+  .seg button { flex: 1; padding: 6px 8px; border: 0; background: none; border-radius: 6px; font-size: 13px; color: var(--muted); }
+  .seg button.on { background: #2c2c3d; color: var(--text); }
+
+  .fill { display: flex; flex-direction: column; gap: 10px; }
+  .fill .fe-solid, .fill .fe-grad, .fill .fe-auto { display: none; }
+  .fill[data-mode=solid] .fe-solid, .fill[data-mode=gradient] .fe-grad, .fill[data-mode=auto] .fe-auto { display: flex; flex-direction: column; gap: 10px; }
+  .sw { display: flex; flex-wrap: wrap; gap: 6px; }
+  .sw button { width: 22px; height: 22px; border-radius: 6px; border: 1px solid #0006; padding: 0; }
+  .bar { height: 22px; border-radius: 6px; border: 1px solid var(--line); }
+  .stop { display: grid; grid-template-columns: 44px 1fr 28px; gap: 8px; align-items: center; margin-bottom: 6px; }
+  .stop button { border: 0; background: none; color: var(--muted); font-size: 16px; }
+  .rowbtns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .presets { display: grid; grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 6px; }
+  .presets button { height: 22px; border-radius: 6px; border: 1px solid #0006; padding: 0; }
+
+  .looks { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+  .look { background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 6px 6px; display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+  .look:hover { border-color: var(--gold2); }
+  .look canvas { image-rendering: pixelated; max-width: 100%; height: auto; }
+  .look span { font-size: 11px; color: var(--muted); }
+
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 14px; min-width: 0; }
+  .card h3 { margin: 0 0 10px; font-size: 12px; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); font-weight: 600; display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .card h3 .tools { display: flex; gap: 8px; align-items: center; text-transform: none; letter-spacing: 0; }
+  .card h3 select { width: auto; padding: 4px 8px; font-size: 12px; }
+  .view { display: flex; align-items: center; justify-content: center; min-height: 150px; border-radius: 8px; overflow: auto; padding: 16px; }
+  .view.checker { background: repeating-conic-gradient(#2a2a36 0% 25%, #20202a 0% 50%) 50% / 16px 16px; }
+  .view.dark { background: #0c0c11; }
+  .view.light { background: #e9e9ee; }
+  .view.game { background: linear-gradient(#7bb4f2, #4b7f35); }
+  canvas { image-rendering: pixelated; max-width: 100%; height: auto; }
+  #chat { width: 100%; border-radius: 8px; image-rendering: auto; }
+  .dims { color: var(--muted); font-size: 12px; margin-top: 8px; }
+  pre { margin: 0; padding: 12px; background: #0c0c12; border: 1px solid var(--line); border-radius: 8px; font: 12px/1.5 ui-monospace, Consolas, monospace; overflow: auto; max-height: 220px; }
+  .lib { display: flex; flex-wrap: wrap; gap: 10px; min-height: 40px; }
+  .item { position: relative; background: var(--panel2); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; cursor: pointer; }
+  .item:hover { border-color: var(--gold2); }
+  .item i { position: absolute; top: 2px; right: 6px; font-style: normal; color: var(--muted); }
+  .item i:hover { color: #ff6b6b; }
+  .item span { font-size: 11px; color: var(--muted); }
+  .libtools { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #22222f; border: 1px solid #3b3b52; padding: 10px 16px; border-radius: 8px; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 20; }
+  #toast.on { opacity: 1; }
+
+  .howto { max-width: 1500px; margin: 16px auto 0; padding: 0 20px; }
+  .howto > * { }
+  .howto-head, .steps, .howto-tip { background: var(--panel); border-left: 1px solid var(--line); border-right: 1px solid var(--line); }
+  .howto-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 16px 18px 6px; border: 1px solid var(--line); border-bottom: 0; border-radius: var(--r) var(--r) 0 0; }
+  .howto-head h2 { margin: 0 0 4px; font-size: 18px; }
+  .howto-head p { margin: 0; color: var(--muted); }
+  .steps { list-style: none; margin: 0; padding: 10px 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .step { width: 100%; height: 100%; text-align: left; display: flex; flex-direction: column; gap: 4px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); background: var(--panel2); }
+  .step:hover { border-color: var(--gold2); }
+  .step b { font-size: 14px; }
+  .step span:not(.num) { color: var(--muted); font-size: 13px; }
+  .num { width: 24px; height: 24px; border-radius: 7px; background: var(--accent); color: #1b1305; font-weight: 700; display: grid; place-items: center; font-size: 13px; }
+  .howto-tip { margin: 0; padding: 4px 18px 16px; color: var(--muted); border-bottom: 1px solid var(--line); border-radius: 0 0 var(--r) var(--r); }
+  .howto.collapsed .steps, .howto.collapsed .howto-tip { display: none; }
+  .howto.collapsed .howto-head { border-bottom: 1px solid var(--line); border-radius: var(--r); padding-bottom: 14px; }
+  @media (max-width: 960px) { .howto { padding: 0 12px; } .steps { grid-template-columns: 1fr; } }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 #d9a93aaa; } 100% { box-shadow: 0 0 0 14px #d9a93a00; } }
+  .pulse { animation: pulse .9s ease-out 2; }
+
+  .foot { max-width: 1500px; margin: 10px auto 0; padding: 22px 20px 30px; display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 14px; border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+  .foot b { color: var(--text); }
+  .foot a.btn { text-decoration: none; color: var(--text); }
+
+  .modal { position: fixed; inset: 0; z-index: 50; display: flex; align-items: center; justify-content: center; padding: 16px; }
+  .modal[hidden] { display: none; }
+  .modal-backdrop { position: absolute; inset: 0; background: #05050acc; backdrop-filter: blur(3px); }
+  .modal-card { position: relative; width: min(460px, 100%); max-height: 100%; overflow: auto; background: var(--panel); border: 1px solid #34344a; border-radius: 14px; padding: 26px 24px 22px; text-align: center; box-shadow: 0 20px 60px #000a; }
+  .modal-card h2 { margin: 8px 0 4px; font-size: 22px; }
+  .modal-card p { margin: 0 0 12px; color: var(--muted); }
+  .modal-logo { image-rendering: pixelated; }
+  .modal-x { position: absolute; top: 10px; right: 12px; width: 32px; height: 32px; border-radius: 8px; border: 0; background: none; color: var(--muted); font-size: 24px; line-height: 1; }
+  .modal-x:hover { background: var(--panel2); color: var(--text); }
+  .quick { list-style: none; margin: 0 0 14px; padding: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+  .quick li { display: flex; gap: 12px; align-items: center; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+  .quick li > span { flex: none; width: 26px; height: 26px; border-radius: 8px; background: var(--accent); color: #1b1305; font-weight: 700; display: grid; place-items: center; }
+  .modal-note { font-size: 12px; }
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand"><img class="logo" src="favicon.svg" alt="" width="36" height="36"><div><b>Tag Studio</b><small>Make rank tags for your Minecraft server</small></div></div>
+  <div class="actions">
+    <button class="btn" id="surprise">Surprise me</button>
+    <button class="btn" id="reset">Reset</button>
+    <button class="btn" id="save">Save to library</button>
+    <button class="btn" id="copy">Copy PNG</button>
+    <button class="btn primary" id="download">Download PNG</button>
+  </div>
+</header>
+
+<section class="howto" id="howto" aria-labelledby="howtoTitle">
+  <div class="howto-head">
+    <div>
+      <h2 id="howtoTitle">How to make a tag</h2>
+      <p>It only takes about a minute. You can't break anything, so just click around. Click a step to jump to it.</p>
+    </div>
+    <button class="btn small" id="howtoToggle" aria-expanded="true">Hide</button>
+  </div>
+  <ol class="steps" id="steps">
+    <li><button class="step" data-go="Text"><span class="num">1</span><b>Type your rank name</b><span>Click the "Tag text" box and type something like OWNER or VIP.</span></button></li>
+    <li><button class="step" data-go="Looks"><span class="num">2</span><b>Pick a look</b><span>Click any picture under "Looks". Don't like it? Click another one.</span></button></li>
+    <li><button class="step" data-go="Background"><span class="num">3</span><b>Change the colors</b><span>Open "Background". Choose Solid for one color or Gradient for a fade. Tap "Random gradient" for a surprise.</span></button></li>
+    <li><button class="step" data-go="Decoration (garden)"><span class="num">4</span><b>Add flowers (optional)</b><span>Open "Decoration" to add flowers and vines. Open "Text style" for a shadow.</span></button></li>
+    <li><button class="step" data-go="#download"><span class="num">5</span><b>Download it</b><span>Press "Download PNG" at the top. The background is see-through, so it works anywhere.</span></button></li>
+    <li><button class="step" data-go="Plugin export"><span class="num">6</span><b>Put it on your server</b><span>Pick your plugin (Nexo, ItemsAdder or Oraxen). Copy the config and drop the PNG in your plugin's folder.</span></button></li>
+  </ol>
+  <p class="howto-tip">Want a quick idea? Press <b>Surprise me</b> at the top. Press <b>Save to library</b> to keep tags you like, then export them all at once.</p>
+</section>
+
+<div class="app">
+  <aside id="controls"></aside>
+  <main class="stage">
+    <section class="card">
+      <h3>Preview
+        <span class="tools">
+          <select id="zoom" aria-label="Zoom"><option value="0">Zoom: auto</option><option>2</option><option>4</option><option>6</option><option>8</option><option>12</option></select>
+          <select id="viewbg" aria-label="Background"><option value="checker">Transparent</option><option value="dark">Dark</option><option value="light">Light</option><option value="game">Sky</option></select>
+        </span>
+      </h3>
+      <div class="view checker" id="view"><canvas id="preview"></canvas></div>
+      <div class="dims" id="dims"></div>
+    </section>
+
+    <section class="card">
+      <h3>In-game chat mock <span class="hint" style="text-transform:none;letter-spacing:0">uses your Ascent setting, so you can check alignment</span></h3>
+      <canvas id="chat"></canvas>
+    </section>
+
+    <section class="card">
+      <h3><span id="cfgTitle">Plugin config</span>
+        <span class="tools"><button class="btn small" id="copyYaml">Copy config</button></span>
+      </h3>
+      <pre id="yaml"></pre>
+      <div class="hint" id="cfgHint" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card">
+      <h3>Library</h3>
+      <div class="lib" id="lib"></div>
+      <div class="libtools">
+        <button class="btn small" id="zip">Export all (ZIP + config)</button>
+        <button class="btn small" id="backup">Backup (.json)</button>
+        <button class="btn small" id="import">Import (.json)</button>
+        <input type="file" id="importFile" accept=".json" hidden>
+      </div>
+    </section>
+  </main>
+</div>
+<footer class="foot">
+  <div>Project by <b>Direk James</b> &middot; &copy; 2026</div>
+  <a class="btn small" href="https://direkjames.github.io/" target="_blank" rel="noopener">Kitly</a>
+  <div class="hint">Not affiliated with Mojang, Nexo, ItemsAdder or Oraxen.</div>
+</footer>
+
+<div class="modal" id="welcome" hidden>
+  <div class="modal-backdrop" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle">
+    <button class="modal-x" data-close aria-label="Close">&times;</button>
+    <img class="modal-logo" src="favicon.svg" alt="" width="56" height="56">
+    <h2 id="welcomeTitle">Welcome to Tag Studio!</h2>
+    <p>Make a rank tag for your Minecraft server in 4 easy steps:</p>
+    <ol class="quick">
+      <li><span>1</span><div><b>Type</b> your rank name in the "Tag text" box.</div></li>
+      <li><span>2</span><div><b>Click</b> a look you like under "Looks".</div></li>
+      <li><span>3</span><div>Press <b>Download PNG</b> at the top of the page.</div></li>
+      <li><span>4</span><div>Open <b>Plugin export</b>, copy the config, and add it with the PNG to your server.</div></li>
+    </ol>
+    <p class="modal-note">There is a longer guide at the top of the page. You can close this window any time.</p>
+    <button class="btn primary" id="welcomeOk" data-close>Got it, let's start</button>
+  </div>
+</div>
+
+<div id="toast" role="status"></div>
+<input type="file" id="spriteFile" accept="image/png,image/gif,image/webp" hidden>
+
+<script>
+'use strict';
+const $ = (s, r = document) => r.querySelector(s);
+const clone = o => JSON.parse(JSON.stringify(o));
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const pick = a => a[Math.floor(Math.random() * a.length)];
+const isObj = v => v && typeof v === 'object' && !Array.isArray(v);
+
+/* ---------- data ---------- */
+// Pixel fonts. Each glyph is rows joined by "/", "#" = pixel. Lowercase typed text maps to capitals.
+// SERVER is read off the server's own tags: 6 wide, 5 tall, 2 px strokes, 7 px advance with 1 px spacing.
+// C R E A T O D H L I V N S P are copied from the samples; the other letters follow the same construction.
+const SERVER = {
+  A: '.####./##..##/##..##/######/##..##', B: '#####./##..##/#####./##..##/#####.', C: '.####./##..##/##..../##..##/.####.',
+  D: '#####./##..##/##..##/##..##/#####.', E: '######/##..../#####./##..../######', F: '######/##..../#####./##..../##....',
+  G: '.####./##..../##.###/##..##/.####.', H: '##..##/##..##/######/##..##/##..##', I: '######/..##../..##../..##../######',
+  J: '..####/....##/....##/##..##/.####.', K: '##..##/##.##./####../##.##./##..##', L: '##..../##..../##..../##..../######',
+  M: '##..##/######/######/##..##/##..##', N: '##..##/###.##/######/##.###/##..##', O: '.####./##..##/##..##/##..##/.####.',
+  P: '#####./##..##/##..##/#####./##....', Q: '.####./##..##/##..##/##.###/.#####', R: '#####./##..##/##..##/#####./##..##',
+  S: '.#####/##..../.####./....##/#####.', T: '######/..##../..##../..##../..##..', U: '##..##/##..##/##..##/##..##/.####.',
+  V: '##..##/##..##/##..##/.####./..##..', W: '##..##/##..##/######/######/##..##', X: '##..##/.####./..##../.####./##..##',
+  Y: '##..##/##..##/.####./..##../..##..', Z: '######/....##/..##../##..../######',
+  0: '.####./##.###/######/###.##/.####.', 1: '..##../.###../..##../..##../######', 2: '.####./##..##/..###./.##.../######',
+  3: '#####./....##/.####./....##/#####.', 4: '##..##/##..##/######/....##/....##', 5: '######/##..../#####./....##/#####.',
+  6: '.####./##..../#####./##..##/.####.', 7: '######/....##/...##./..##../..##..', 8: '.####./##..##/.####./##..##/.####.',
+  9: '.####./##..##/.#####/....##/.####.',
+  ' ': '.../.../.../.../...', '-': '..../..../####/..../....', _: '....../....../....../....../######',
+  '.': '../../../../##', '!': '##/##/##/../##', '?': '.####./##..##/..###./....../..##..', '+': '....../..##../######/..##../......',
+  ':': '../##/../##/..', "'": '##/##/../../..', '/': '....##/...##./..##../.##.../##....',
+  '(': '.##/##./##./##./.##', ')': '##./.##/.##/.##/##.', '[': '###/##./##./##./###', ']': '###/.##/.##/.##/###'
+};
+// SLIM: classic 3x5, 1 px strokes, for narrower and quieter tags.
+const SLIM = {
+  A: '.#./#.#/###/#.#/#.#', B: '##./#.#/##./#.#/##.', C: '.##/#../#../#../.##', D: '##./#.#/#.#/#.#/##.', E: '###/#../##./#../###',
+  F: '###/#../##./#../#..', G: '.##/#../#.#/#.#/.##', H: '#.#/#.#/###/#.#/#.#', I: '###/.#./.#./.#./###', J: '..#/..#/..#/#.#/.#.',
+  K: '#.#/#.#/##./#.#/#.#', L: '#../#../#../#../###', M: '#.#/###/###/#.#/#.#', N: '##./#.#/#.#/#.#/#.#', O: '.#./#.#/#.#/#.#/.#.',
+  P: '##./#.#/##./#../#..', Q: '.#./#.#/#.#/##./.##', R: '##./#.#/##./#.#/#.#', S: '.##/#../.#./..#/##.', T: '###/.#./.#./.#./.#.',
+  U: '#.#/#.#/#.#/#.#/###', V: '#.#/#.#/#.#/#.#/.#.', W: '#.#/#.#/###/###/#.#', X: '#.#/#.#/.#./#.#/#.#', Y: '#.#/#.#/.#./.#./.#.',
+  Z: '###/..#/.#./#../###',
+  0: '###/#.#/#.#/#.#/###', 1: '.#./##./.#./.#./###', 2: '###/..#/###/#../###', 3: '###/..#/###/..#/###', 4: '#.#/#.#/###/..#/..#',
+  5: '###/#../###/..#/###', 6: '###/#../###/#.#/###', 7: '###/..#/.#./.#./.#.', 8: '###/#.#/###/#.#/###', 9: '###/#.#/###/..#/###',
+  ' ': '../../../../..', '-': '.../.../###/.../...', _: '.../.../.../.../###', '.': '././././#',
+  '!': '#/#/#/./#', '?': '###/..#/.#./.../.#.', ':': './#/./#/.', "'": '#/#/././.', '/': '..#/..#/.#./#../#..', '+': '.../.#./###/.#./...'
+};
+const parseGlyphs = o => Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v.split('/')]));
+const FONTS = {
+  server: { label: 'Server (chunky, from your tags)', h: 5, glyphs: parseGlyphs(SERVER) },
+  slim:   { label: 'Slim (1 px strokes)',             h: 5, glyphs: parseGlyphs(SLIM) }
+};
+const ICONS = {
+  star:    ['...#...', '..###..', '#######', '.#####.', '..###..', '.##.##.', '.#...#.'],
+  crown:   ['#..#..#', '##.#.##', '#######', '#######', '.#####.'],
+  heart:   ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'],
+  diamond: ['...#...', '..###..', '.#####.', '#######', '.#####.', '..###..', '...#...'],
+  shield:  ['#####', '#####', '#####', '.###.', '.###.', '..#..'],
+  skull:   ['.#####.', '#######', '#.###.#', '#######', '.#####.', '..#.#..', '..#.#..']
+};
+const SWATCHES = ['#ff0000', '#e63946', '#ff7a00', '#ffd23f', '#d8aa1b', '#8ab830', '#37b028', '#00c2a8', '#2f7fe0', '#8a3fd1', '#b42a51', '#ff4fa3', '#ffffff', '#9aa0a6', '#1b1b22'];
+const GRADS = {
+  Gold: ['#fff1a8', '#f5c518', '#a86b00'], Ruby: ['#ff6b6b', '#e60000', '#7a0000'], Emerald: ['#7bf5a6', '#14b866', '#066b3a'],
+  Sapphire: ['#8ec5ff', '#2f7fe0', '#123c8a'], Amethyst: ['#e0b3ff', '#9b4dff', '#4b1aa0'], Sunset: ['#ff9a3c', '#ff3d7f', '#7b2cbf'],
+  Ocean: ['#4ee0ff', '#1c7bd6', '#10337a'], Aurora: ['#00f5d4', '#00bbf9', '#9b5de5'], Rose: ['#ffc2d4', '#ff5d8f', '#c9184a'],
+  Steel: ['#d9e2ec', '#8795a1', '#3e4c59'], Candy: ['#ff9ff3', '#feca57', '#54a0ff'], Obsidian: ['#3a3150', '#1c1530', '#0b0814'],
+  Lava: ['#ffe259', '#ff7b00', '#c20000']
+};
+
+const evenStops = cols => cols.map((c, i) => ({ c, p: cols.length === 1 ? 0 : i / (cols.length - 1) }));
+const mkFill = (color, cols, angle = 180, mode = 'solid') => ({ mode, color, stops: evenStops(cols), angle, steps: 0 });
+const G = (cols, angle = 180) => mkFill(cols[0], cols, angle, 'gradient');
+const S = c => ({ mode: 'solid', color: c });
+
+const DEFAULT = {
+  text: 'CREATOR', font: 'server', tracking: 1, textDy: 0,
+  shape: 'notched', height: 11, padX: 4, minWidth: 0, radius: 1, slant: 3,
+  bg: mkFill('#ff0000', ['#ff4d4d', '#d10000']),
+  border: mkFill('#7a0000', ['#ffe27a', '#a86b00'], 180, 'auto'),
+  borderW: 1, borderDark: 38, bevel: 1, highlight: 30, shade: 27, gloss: 0,
+  shine: { on: false, pos: 40, width: 3, alpha: 40 },
+  // rows of the 5 px letters read F5F5F5, F5F5F5, E1E1E1, E1E1E1, D1D1D1 in the server tags
+  tfill: { ...mkFill('#f5f5f5', ['#f5f5f5'], 180, 'gradient'), stops: [{ c: '#f5f5f5', p: 0 }, { c: '#f5f5f5', p: 0.34 }, { c: '#e1e1e1', p: 0.38 }, { c: '#e1e1e1', p: 0.7 }, { c: '#d1d1d1', p: 0.78 }] },
+  shadow: { on: true, dx: 0, dy: 1, len: 1, auto: true, amt: 27, color: '#000000', alpha: 35 },
+  outline: { on: false, width: 1, color: '#000000' },
+  icon: { name: 'none', side: 'left', gap: 2 },
+  deco: { mode: 'none', sprite: 'daisy', density: 5, seed: 7, alpha: 100, over: false, clear: true, petal: '#ff8fb8', center: '#ffd23f', leaf: '#4caf50', custom: null },
+  plugin: 'nexo',
+  nexo: { id: '', namespace: 'tagstudio', folder: 'default/tags', iaFolder: 'font/tags', ascentAuto: true, ascent: 9, placeholder: '', tabcomplete: false, permission: '' },
+  out: { scale: 4, margin: 0 }
+};
+
+const LOOKS = [
+  ['Server classic', {}],
+  ['Royal gold', { bg: G(['#ffe27a', '#e6a400', '#9a5b00']), borderDark: 55, highlight: 40, shine: { on: true, pos: 35, width: 3, alpha: 45 }, tfill: S('#ffffff'), shadow: { auto: false, color: '#4a2a00', alpha: 80 } }],
+  ['Emerald glass', { shape: 'notched', radius: 2, bg: G(GRADS.Emerald), gloss: 35, highlight: 10 }],
+  ['Sapphire pill', { shape: 'pill', bg: G(GRADS.Sapphire), border: S('#0b2a66'), gloss: 25, tfill: S('#ffffff'), shadow: { auto: false, color: '#0b2a66', alpha: 80 } }],
+  ['Obsidian violet', { bg: G(['#3a3150', '#1c1530']), border: G(['#c4b5fd', '#7c3aed']), highlight: 0, shade: 0, tfill: G(['#f5f3ff', '#c4b5fd']), shadow: { auto: false, alpha: 60 } }],
+  ['Sunset ribbon', { shape: 'angled', slant: 3, bg: G(GRADS.Sunset, 90), shine: { on: true, pos: 55, width: 2, alpha: 35 } }],
+  ['Neon outline', { bg: S('#0a0a14'), border: G(['#00f5d4', '#9b5de5'], 90), highlight: 0, shade: 0, tfill: G(['#00f5d4', '#9b5de5'], 90), shadow: { on: false } }],
+  ['Mono minimal', { bg: S('#1b1b22'), border: S('#ffffff'), bevel: 0, highlight: 0, shade: 0, tfill: S('#ffffff'), shadow: { on: false } }],
+  ['Aurora arrow', { shape: 'arrow', bg: G(GRADS.Aurora, 90), shine: { on: true, pos: 30, width: 3, alpha: 40 }, shadow: { auto: false, color: '#06324a', alpha: 70 } }],
+  ['Frost', { shape: 'notched', radius: 2, bg: G(['#ffffff', '#9fd8ff', '#4aa8ff']), border: S('#2d6fb3'), tfill: S('#12345f'), shadow: { auto: false, color: '#ffffff', alpha: 80, dx: 0, dy: 1 } }],
+  ['Spring garden', { shape: 'notched', radius: 2, bg: G(['#d6f5a8', '#6cc24a', '#3f8f2e']), border: S('#245c1d'), tfill: S('#ffffff'), shadow: { auto: false, color: '#1d4a18', alpha: 85 }, deco: { mode: 'vine-both', density: 5, seed: 11, petal: '#ff8fb8', center: '#ffd23f', leaf: '#2f7a2a' } }],
+  ['Sakura', { shape: 'notched', radius: 2, bg: G(['#ffd1e3', '#ff8fb8', '#e85d94']), border: S('#a1345e'), tfill: S('#ffffff'), shadow: { auto: false, color: '#a1345e', alpha: 85 }, deco: { mode: 'ends', sprite: 'blossom', petal: '#ffffff', center: '#ffd23f', leaf: '#4caf50' } }],
+  ['Sunflowers', { bg: G(['#ffe27a', '#f0b000']), tfill: S('#5a3300'), shadow: { auto: false, color: '#fff3b0', alpha: 80 }, deco: { mode: 'scatter', sprite: 'sunflower', density: 3, alpha: 70, petal: '#fff3b0', center: '#7a4a00', leaf: '#4caf50' } }]
+];
+const KEEP = ['text', 'font', 'tracking', 'textDy', 'height', 'padX', 'minWidth', 'icon', 'deco', 'plugin', 'nexo', 'out'];
+
+function merge(base, patch) {
+  const o = clone(base);
+  for (const k in patch) o[k] = isObj(patch[k]) && isObj(o[k]) ? merge(o[k], patch[k]) : clone(patch[k]);
+  if (o.shape === 'rounded') o.shape = 'notched';   // the Rounded shape was removed, it matched Notched corners
+  return o;
+}
+
+/* ---------- state ---------- */
+let state = clone(DEFAULT);
+let lib = [];
+const ui = { zoom: 0, bg: 'checker' };
+
+function load() {
+  try {
+    const s = localStorage.getItem('tagstudio.state'); if (s) state = merge(DEFAULT, JSON.parse(s));
+    const l = localStorage.getItem('tagstudio.lib'); if (l) lib = JSON.parse(l);
+  } catch (e) { /* storage blocked: start fresh */ }
+  if (!FONTS[state.font]) state.font = 'server';
+}
+let saveTimer;
+function persist() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => { try { localStorage.setItem('tagstudio.state', JSON.stringify(state)); localStorage.setItem('tagstudio.lib', JSON.stringify(lib)); } catch (e) { /* ignore */ } }, 300);
+}
+
+/* ---------- colour helpers ---------- */
+const hex2rgb = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+const rgb2hex = c => '#' + c.map(v => clamp(Math.round(v), 0, 255).toString(16).padStart(2, '0')).join('');
+const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
+const shadeRgb = (c, amt) => amt < 0 ? c.map(v => v * (1 + amt)) : c.map(v => v + (255 - v) * amt);
+function hsl(h, s, l) {
+  h = ((h % 360) + 360) % 360; s /= 100; l /= 100;
+  const a = s * Math.min(l, 1 - l);
+  const f = n => { const k = (n + h / 30) % 12; return l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)); };
+  return rgb2hex([f(0), f(8), f(4)].map(v => v * 255));
+}
+function randomGradient() {
+  const h = Math.random() * 360;
+  const scheme = pick(['analogous', 'complement', 'triad', 'mono']);
+  const hs = { analogous: [h, h + 28, h + 56], complement: [h, h + 150, h + 180], triad: [h, h + 120, h + 240], mono: [h, h + 8, h - 8] }[scheme];
+  const n = scheme === 'triad' || Math.random() < 0.4 ? 3 : 2;
+  const ls = n === 3 ? [68, 52, 36] : [64, 38];
+  const cols = hs.slice(0, n).map((x, i) => hsl(x, 70 + Math.random() * 25, ls[i] + Math.random() * 6));
+  return { mode: 'gradient', color: cols[0], stops: evenStops(cols), angle: pick([0, 45, 90, 135, 180, 180, 225]), steps: 0 };
+}
+
+/* ---------- fill evaluation ---------- */
+function makeFill(spec, reg) {
+  if (spec.mode !== 'gradient') { const c = hex2rgb(spec.color || '#ffffff'); return () => c; }
+  const stops = [...spec.stops].sort((a, b) => a.p - b.p).map(s => ({ c: hex2rgb(s.c), p: s.p }));
+  const a = spec.angle * Math.PI / 180, dx = Math.sin(a), dy = -Math.cos(a);
+  const L = Math.abs(reg.w * dx) + Math.abs(reg.h * dy) || 1;
+  const steps = spec.steps | 0;
+  return (x, y) => {
+    let t = clamp(((x + .5 - reg.x - reg.w / 2) * dx + (y + .5 - reg.y - reg.h / 2) * dy) / L + .5, 0, 1);
+    if (steps > 1) t = Math.min(steps - 1, Math.floor(t * steps)) / (steps - 1);
+    if (t <= stops[0].p) return stops[0].c;
+    for (let i = 1; i < stops.length; i++) {
+      if (t <= stops[i].p) { const s0 = stops[i - 1], s1 = stops[i]; return mixc(s0.c, s1.c, (t - s0.p) / ((s1.p - s0.p) || 1)); }
+    }
+    return stops[stops.length - 1].c;
+  };
+}
+
+/* ---------- layout ---------- */
+function buildLayout(st) {
+  const f = FONTS[st.font] || FONTS.server, H = st.height;
+  const items = []; let cursor = 0;
+  for (const ch of st.text) {
+    const g = f.glyphs[ch.toUpperCase()] || f.glyphs['?'];
+    items.push({ g, x: cursor });
+    cursor += g[0].length + st.tracking;
+  }
+  const textW = items.length ? cursor - st.tracking : 0;
+  const icon = ICONS[st.icon.name] || null;
+  const iw = icon ? icon[0].length : 0, ih = icon ? icon.length : 0;
+  const contentW = textW + (icon && textW ? st.icon.gap : 0) + iw;
+  const extra = st.shape === 'angled' ? st.slant : st.shape === 'arrow' ? Math.floor(H / 2) : 0;
+  const side = Math.max(st.padX, decoNeed(st));
+  const W = Math.max(st.minWidth, side * 2 + contentW + extra, 3);
+  const contentX = Math.floor((W - extra - contentW) / 2) + (st.shape === 'angled' ? Math.round(st.slant / 2) : 0);
+  const iconLeft = st.icon.side === 'left';
+  const textStart = contentX + (icon && iconLeft ? iw + (textW ? st.icon.gap : 0) : 0);
+  const iconX = iconLeft ? contentX : contentX + textW + (textW ? st.icon.gap : 0);
+  const textTop = Math.round((H - f.h) / 2) + st.textDy;
+  return { W, H, f, items, textW, textTop, icon, iw, ih, iconX, iconTop: Math.round((H - ih) / 2), textStart, contentX, contentW };
+}
+
+function makeMask(L, st) {
+  const { W, H } = L, m = new Uint8Array(W * H);
+  const tip = Math.floor(H / 2), c = (H - 1) / 2;
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const dx = Math.min(x, W - 1 - x), dy = Math.min(y, H - 1 - y);
+    let ins = true;
+    switch (st.shape) {
+      case 'notched': ins = dx + dy >= st.radius; break;
+      case 'pill': {
+        const R = H / 2;
+        if (dx < R && dy < R) ins = Math.hypot(R - dx - .5, R - dy - .5) <= R;
+        break;
+      }
+      case 'angled': {
+        const sh = Math.round(st.slant * (H - 1 - y) / Math.max(1, H - 1));
+        ins = x >= sh && x <= W - 1 - (st.slant - sh);
+        break;
+      }
+      case 'arrow': ins = x <= W - 1 - Math.round(tip * Math.abs(y - c) / (c || 1)); break;
+    }
+    m[y * W + x] = ins ? 1 : 0;
+  }
+  return m;
+}
+
+function paintBody(L, st, mask) {
+  const { W, H } = L, bw = st.borderW;
+  const depth = new Uint8Array(W * H);
+  const has = (x, y) => x >= 0 && y >= 0 && x < W && y < H && mask[y * W + x];
+  for (let k = 1; k <= bw; k++) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const i = y * W + x;
+      if (!mask[i] || depth[i]) continue;
+      let hit = false;
+      // 8 neighbours: the server's tags also outline the pixel diagonal to a cut corner
+      for (const [a, b] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, 1], [1, -1], [-1, -1]]) {
+        const X = x + a, Y = y + b;
+        if (!has(X, Y)) { if (k === 1) hit = true; } else if (k > 1 && depth[Y * W + X] === k - 1) hit = true;
+      }
+      if (hit) depth[i] = k;
+    }
+  }
+  const isBorder = i => depth[i] >= 1 && depth[i] <= bw;
+  const inter = (x, y) => has(x, y) && !isBorder(y * W + x);
+
+  const whole = { x: 0, y: 0, w: W, h: H };
+  const bgF = makeFill(st.bg, whole);
+  const brF = st.border.mode === 'auto' ? null : makeFill(st.border, whole);
+  const img = new ImageData(W, H);
+  const white = [255, 255, 255];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (!mask[i]) continue;
+    let rgb;
+    if (isBorder(i)) {
+      rgb = brF ? brF(x, y) : shadeRgb(bgF(x, y), -st.borderDark / 100);
+    } else {
+      rgb = bgF(x, y);
+      let k = 0; while (k < st.bevel && inter(x, y - 1 - k)) k++;
+      const top = k < st.bevel;
+      k = 0; while (k < st.bevel && inter(x, y + 1 + k)) k++;
+      const bottom = k < st.bevel;
+      if (top) rgb = shadeRgb(rgb, st.highlight / 100);
+      else if (bottom) rgb = shadeRgb(rgb, -st.shade / 100);
+      else if (st.gloss && y < H / 2) rgb = mixc(rgb, white, st.gloss / 100 * 0.4);
+    }
+    if (st.shine.on) {
+      const u = x + y * 0.8, center = st.shine.pos / 100 * (W + H * 0.8);
+      if (Math.abs(u - center) <= st.shine.width / 2) rgb = mixc(rgb, white, st.shine.alpha / 100);
+    }
+    img.data.set([rgb[0], rgb[1], rgb[2], 255], i * 4);
+  }
+  img.borderArr = new Uint8Array(W * H).map((_, i) => (isBorder(i) ? 1 : 0));
+  return img;
+}
+
+/* ---------- decoration (garden sprites) ---------- */
+// Sprite rows are joined by "/". p = petal, c = flower centre, g = leaf, d = dark leaf / stem, l = light leaf.
+const SPRITES = {
+  blossom:   '.p./pcp/.p.',
+  daisy:     '..p../.ppp./ppcpp/.ppp./..p..',
+  tulip:     'p.p.p/ppppp/.ppp./..d../.gd..',
+  rose:      '.ppp./pdppp/ppdpp/.ppp./..g..',
+  sunflower: '..p.p../.ppppp./pppcppp/.ppppp./..p.p..',
+  clover:    'gg.gg/ggdgg/.gdg./..d../..d..',
+  leaf:      '..gg/.ggl/ggl./d...',
+  butterfly: 'p.c.p/ppcpp/.pcp./..c..'
+};
+const PALETTES = [
+  ['Spring pink', ['#ff8fb8', '#ffd23f', '#4caf50']], ['Sakura', ['#ffffff', '#ffb3cf', '#7bc47f']],
+  ['Sunflower', ['#ffd23f', '#7a4a00', '#4caf50']], ['Lavender', ['#b48cff', '#ffe66d', '#6aa84f']],
+  ['Rose red', ['#e63946', '#ffd23f', '#2e7d32']], ['Bluebell', ['#6ea8ff', '#ffffff', '#3f9b57']],
+  ['Night garden', ['#9b5de5', '#00f5d4', '#1f7a5a']], ['Autumn', ['#ff7a00', '#ffd23f', '#8a5a2b']]
+];
+function rng(seed) {   // mulberry32: the same seed always gives the same garden
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6D2B79F5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function decoPalette(st) {
+  const d = st.deco, leaf = hex2rgb(d.leaf);
+  return { p: hex2rgb(d.petal), c: hex2rgb(d.center), g: leaf, d: shadeRgb(leaf, -0.35), l: shadeRgb(leaf, 0.3) };
+}
+function getSprite(st, key = st.deco.sprite) {
+  const c = st.deco.custom;
+  if (key === 'custom' && c) return { w: c.w, h: c.h, at: (x, y) => (c.px[y * c.w + x] ? hex2rgb(c.px[y * c.w + x]) : null) };
+  const pal = decoPalette(st), rows = (SPRITES[key] || SPRITES.blossom).split('/');
+  return { w: rows[0].length, h: rows.length, at: (x, y) => pal[rows[y][x]] || null };
+}
+// Ends and corners need room beside the text, so the tag grows until each side can hold the sprite.
+const decoNeed = st => ['ends', 'corners'].includes(st.deco.mode) ? getSprite(st).w + st.borderW + 1 : 0;
+
+function buildDeco(L, st, mask, border) {
+  const dc = st.deco;
+  if (dc.mode === 'none') return null;
+  const { W, H } = L, bw = st.borderW, rnd = rng(dc.seed);
+  const a = new Uint8Array(W * H), rgb = new Uint8Array(W * H * 3);
+  const clear = (x, y) => dc.clear && L.textW && x >= L.textStart && x < L.textStart + L.textW && y >= L.textTop && y < L.textTop + L.f.h;
+  const plot = (x, y, c) => {
+    if (!c || x < 0 || y < 0 || x >= W || y >= H) return;
+    const i = y * W + x;
+    if (!mask[i] || border[i] || clear(x, y)) return;
+    a[i] = 1; rgb[i * 3] = c[0]; rgb[i * 3 + 1] = c[1]; rgb[i * 3 + 2] = c[2];
+  };
+  const stamp = (s, x0, y0, fx, fy) => {
+    for (let y = 0; y < s.h; y++) for (let x = 0; x < s.w; x++) plot(x0 + (fx ? s.w - 1 - x : x), y0 + (fy ? s.h - 1 - y : y), s.at(x, y));
+  };
+  const s = getSprite(st), leaf = getSprite(st, 'leaf'), blossom = getSprite(st, 'blossom'), pal = decoPalette(st);
+
+  if (dc.mode === 'ends') {
+    const y = Math.floor((H - s.h) / 2);
+    stamp(s, bw, y, false, false);
+    stamp(s, W - bw - s.w, y, true, false);
+  } else if (dc.mode === 'corners') {
+    stamp(s, bw, bw, false, false); stamp(s, W - bw - s.w, bw, true, false);
+    stamp(s, bw, H - bw - s.h, false, true); stamp(s, W - bw - s.w, H - bw - s.h, true, true);
+  } else if (dc.mode === 'tile') {
+    const gap = 11 - dc.density, stepX = s.w + gap, stepY = s.h + gap;
+    for (let ty = 0, r = 0; ty < H; ty += stepY, r++)
+      for (let tx = -(r % 2) * Math.floor(stepX / 2); tx < W; tx += stepX) stamp(s, tx, ty, false, false);
+  } else if (dc.mode === 'scatter') {
+    const isFlower = !['leaf', 'clover'].includes(dc.sprite);
+    const count = Math.max(1, Math.round(W * H * dc.density / 300));
+    for (let n = 0; n < count; n++) {
+      const sp = isFlower && rnd() < 0.35 ? leaf : s;
+      stamp(sp, Math.floor(rnd() * (W - sp.w + 1)), Math.floor(rnd() * (H - sp.h + 1)), rnd() < 0.5, rnd() < 0.5);
+    }
+  } else {   // vine-top / vine-bottom / vine-both
+    const vine = top => {
+      const base = top ? bw + 1 : H - bw - 2, dir = top ? 1 : -1, ph = rnd() * 6, lp = Math.floor(ph);
+      for (let x = bw; x < W - bw; x++) {
+        const y = base + dir * Math.round((Math.sin((x + ph) * 0.5) + 1) / 2);   // wiggles one pixel toward the middle
+        plot(x, y, pal.d);
+        if ((x + lp) % 5 === 0) { plot(x, y + dir, pal.g); plot(x + 1, y + dir, pal.l); plot(x + 1, y + 2 * dir, pal.g); }
+      }
+      const every = Math.max(8, 22 - dc.density * 2);
+      for (let x = bw + 2 + Math.floor(rnd() * every / 2); x < W - bw - 2; x += every + Math.floor(rnd() * 4)) stamp(blossom, x - 1, base - 1, false, false);
+    };
+    if (dc.mode !== 'vine-bottom') vine(true);
+    if (dc.mode !== 'vine-top') vine(false);
+  }
+  return { a, rgb };
+}
+
+function applyDeco(d, deco, alpha) {
+  for (let i = 0; i < deco.a.length; i++) {
+    if (!deco.a[i]) continue;
+    const o = mixc([d[i * 4], d[i * 4 + 1], d[i * 4 + 2]], [deco.rgb[i * 3], deco.rgb[i * 3 + 1], deco.rgb[i * 3 + 2]], alpha / 100);
+    d[i * 4] = Math.round(o[0]); d[i * 4 + 1] = Math.round(o[1]); d[i * 4 + 2] = Math.round(o[2]);
+  }
+}
+
+/* ---------- render ---------- */
+// Everything is composed at native resolution, one array cell per tag pixel, then scaled up by an
+// integer factor with nearest-neighbour. No fonts, no anti-aliasing, so edges stay razor sharp.
+function renderTag(st, S, opts = {}) {
+  const L = buildLayout(st), m = opts.margin ?? st.out.margin, { W, H } = L;
+  const mask = makeMask(L, st), body = paintBody(L, st, mask);
+
+  const put = (arr, x, y) => { if (x >= 0 && y >= 0 && x < W && y < H) arr[y * W + x] = 1; };
+  const glyph = new Uint8Array(W * H);
+  const stamp = (rows, ox, oy) => rows.forEach((row, py) => { for (let px = 0; px < row.length; px++) if (row[px] === '#') put(glyph, ox + px, oy + py); });
+  L.items.forEach(it => stamp(it.g, L.textStart + it.x, L.textTop));
+  if (L.icon) stamp(L.icon, L.iconX, L.iconTop);
+
+  const grow = (src, e) => {
+    const out = new Uint8Array(W * H);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (src[y * W + x])
+      for (let a = -e; a <= e; a++) for (let b = -e; b <= e; b++) put(out, x + a, y + b);
+    return out;
+  };
+  const outline = st.outline.on ? grow(glyph, st.outline.width) : null;
+  const caster = outline || glyph;
+  const shadow = new Uint8Array(W * H);
+  if (st.shadow.on) for (let i = 1; i <= st.shadow.len; i++) {
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (caster[y * W + x]) put(shadow, x + st.shadow.dx * i, y + st.shadow.dy * i);
+  }
+
+  const y0 = Math.min(L.textTop, L.icon ? L.iconTop : 99), y1 = Math.max(L.textTop + L.f.h, L.icon ? L.iconTop + L.ih : 0);
+  const fillF = makeFill(st.tfill, { x: L.contentX, y: y0, w: Math.max(1, L.contentW), h: Math.max(1, y1 - y0) });
+  const olRgb = hex2rgb(st.outline.color), shRgb = hex2rgb(st.shadow.color), d = body.data;
+  const deco = buildDeco(L, st, mask, body.borderArr);
+  if (deco && !st.deco.over) applyDeco(d, deco, st.deco.alpha);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const i = y * W + x;
+    if (!mask[i]) continue;
+    let rgb = null;
+    if (glyph[i]) rgb = fillF(x, y);
+    else if (outline && outline[i]) rgb = olRgb;
+    else if (shadow[i]) {
+      const cur = [d[i * 4], d[i * 4 + 1], d[i * 4 + 2]];
+      rgb = st.shadow.auto ? shadeRgb(cur, -st.shadow.amt / 100) : mixc(cur, shRgb, st.shadow.alpha / 100);
+    }
+    if (rgb) d.set([Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2]), 255], i * 4);
+  }
+
+  if (deco && st.deco.over) applyDeco(d, deco, st.deco.alpha);
+  const nw = W + 2 * m, nh = H + 2 * m;
+  const nc = document.createElement('canvas'); nc.width = nw; nc.height = nh;
+  nc.getContext('2d').putImageData(body, m, m);
+  const c = document.createElement('canvas'); c.width = nw * S; c.height = nh * S;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  g.drawImage(nc, 0, 0, nw, nh, 0, 0, nw * S, nh * S);
+  return { canvas: c, L };
+}
+
+/* ---------- plugin export (Nexo / ItemsAdder / Oraxen) ---------- */
+const PLUGINS = { nexo: { label: 'Nexo' }, itemsadder: { label: 'ItemsAdder' }, oraxen: { label: 'Oraxen' } };
+const slug = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '') || 'tag';
+const cleanPath = p => (p || '').replace(/^\/+|\/+$/g, '');
+function ascentOf(st) {
+  const a = st.nexo.ascentAuto ? Math.round(st.height / 2 + 3.5) : st.nexo.ascent;
+  return clamp(a, 0, st.height);
+}
+// The transparent margin is part of the PNG, so it counts toward height and ascent.
+const sizeOf = st => ({ height: st.height + 2 * st.out.margin, ascent: ascentOf(st) + st.out.margin });
+
+// entries = [{ id, st }]. Returns the config file text for the chosen plugin.
+function configText(entries, plugin = state.plugin) {
+  if (plugin === 'itemsadder') {
+    const items = entries.map(({ id, st }) => {
+      const z = sizeOf(st);
+      return [`  ${id}:`, `    path: ${cleanPath(st.nexo.iaFolder)}/${id}.png`, `    scale_ratio: ${z.height}`, `    y_position: ${z.ascent}`, '    show_in_gui: true'].join('\n');
+    });
+    return `info:\n  namespace: ${slug(entries[0].st.nexo.namespace)}\nfont_images:\n${items.join('\n')}\n`;
+  }
+  return entries.map(({ id, st }) => {
+    const z = sizeOf(st), n = st.nexo, ph = n.placeholder.trim(), perm = n.permission.trim();
+    const lines = [`${id}:`, `  texture: ${cleanPath(n.folder)}/${id}`, `  ascent: ${z.ascent}`, `  height: ${z.height}`];
+    if (plugin === 'oraxen') {
+      const chat = [];
+      if (ph && n.tabcomplete) chat.push('    tabcomplete: true');
+      if (ph) chat.push('    placeholders:', `      - "${ph}"`);
+      if (perm) chat.push(`    permission: "${perm}"`);
+      if (chat.length) lines.push('  chat:', ...chat);
+    } else {
+      if (ph) { lines.push('  placeholders:', `    - "${ph}"`); if (n.tabcomplete) lines.push('  tabcomplete: true'); }
+      if (perm) lines.push(`  permission: "${perm}"`);
+    }
+    return lines.join('\n');
+  }).join('\n\n') + '\n';
+}
+
+// Where each plugin expects the PNG, relative to its own folder.
+function texturePath(plugin, st, id) {
+  const n = st.nexo;
+  if (plugin === 'itemsadder') return `contents/${slug(n.namespace)}/textures/${cleanPath(n.iaFolder)}/${id}.png`;
+  if (plugin === 'oraxen') return `pack/textures/${cleanPath(n.folder)}/${id}.png`;
+  return `textures/${cleanPath(n.folder)}/${id}.png`;
+}
+function pluginHint(st) {
+  const id = tagId(st), n = st.nexo;
+  if (st.plugin === 'itemsadder') return `Save this as a .yml file inside plugins/ItemsAdder/contents/${slug(n.namespace)}/. Put the PNG at contents/${slug(n.namespace)}/textures/${cleanPath(n.iaFolder)}/${id}.png, then run /iazip.`;
+  if (st.plugin === 'oraxen') return `Save this in a .yml file inside plugins/Oraxen/glyphs. Put the PNG at pack/textures/${cleanPath(n.folder)}/${id}.png, then reload Oraxen.`;
+  return `Save this in any .yml file inside plugins/Nexo/glyphs. Put the PNG in your Nexo pack at the texture path shown above (${cleanPath(n.folder)}/${id}.png), then reload Nexo.`;
+}
+
+/* ---------- controls ---------- */
+const getp = (o, p) => p.split('.').reduce((a, k) => a[k], o);
+const setp = (o, p, v) => { const ks = p.split('.'); const last = ks.pop(); ks.reduce((a, k) => a[k], o)[last] = v; };
+const opt = a => a.map(([v, l]) => `<option value="${v}">${l}</option>`).join('');
+const rows = [];       // {el, show}
+const editors = {};    // fill editors by state key
+
+const UI = [
+  { title: 'Looks', open: true, items: [['looks']] },
+  { title: 'Text', open: true, items: [
+    ['text', 'text', 'Tag text'],
+    ['font'],
+    ['range', 'tracking', 'Letter spacing', 0, 4, 1, { unit: 'px' }],
+    ['range', 'textDy', 'Vertical nudge', -3, 3, 1, { unit: 'px' }]
+  ] },
+  { title: 'Shape', open: true, items: [
+    ['select', 'shape', 'Shape', [['square', 'Square'], ['notched', 'Notched corners'], ['pill', 'Pill'], ['angled', 'Angled'], ['arrow', 'Arrow']]],
+    ['range', 'height', 'Height', 7, 32, 1, { unit: 'px' }],
+    ['range', 'padX', 'Side padding', 0, 14, 1, { unit: 'px' }],
+    ['range', 'minWidth', 'Minimum width', 0, 120, 1, { unit: 'px' }],
+    ['range', 'radius', 'Corner size', 1, 8, 1, { show: s => s.shape === 'notched' }],
+    ['range', 'slant', 'Slant', 1, 10, 1, { show: s => s.shape === 'angled' }]
+  ] },
+  { title: 'Background', open: true, items: [['fill', 'bg']] },
+  { title: 'Border and finish', items: [
+    ['range', 'borderW', 'Border width', 0, 3, 1, { unit: 'px' }],
+    ['fill', 'border', { auto: true, show: s => s.borderW > 0 }],
+    ['range', 'bevel', 'Bevel rows', 0, 3, 1],
+    ['range', 'highlight', 'Top highlight', 0, 100, 1, { unit: '%' }],
+    ['range', 'shade', 'Bottom shade', 0, 100, 1, { unit: '%' }],
+    ['range', 'gloss', 'Gloss', 0, 100, 1, { unit: '%' }],
+    ['check', 'shine.on', 'Shine streak'],
+    ['range', 'shine.pos', 'Shine position', 0, 100, 1, { unit: '%', show: s => s.shine.on }],
+    ['range', 'shine.width', 'Shine width', 1, 10, 1, { show: s => s.shine.on }],
+    ['range', 'shine.alpha', 'Shine strength', 5, 100, 1, { unit: '%', show: s => s.shine.on }]
+  ] },
+  { title: 'Text style', items: [
+    ['fill', 'tfill'],
+    ['check', 'shadow.on', 'Pixel text shadow'],
+    ['range', 'shadow.dx', 'Shadow X', -3, 3, 1, { show: s => s.shadow.on }],
+    ['range', 'shadow.dy', 'Shadow Y', -3, 3, 1, { show: s => s.shadow.on }],
+    ['range', 'shadow.len', 'Shadow length', 1, 4, 1, { show: s => s.shadow.on }],
+    ['check', 'shadow.auto', 'Auto shadow color (darker than the tag)', { show: s => s.shadow.on }],
+    ['range', 'shadow.amt', 'Shadow darkness', 5, 90, 1, { unit: '%', show: s => s.shadow.on && s.shadow.auto }],
+    ['range', 'shadow.alpha', 'Shadow opacity', 0, 100, 1, { unit: '%', show: s => s.shadow.on && !s.shadow.auto }],
+    ['color', 'shadow.color', 'Shadow color', { show: s => s.shadow.on && !s.shadow.auto }],
+    ['check', 'outline.on', 'Pixel outline'],
+    ['range', 'outline.width', 'Outline width', 1, 2, 1, { show: s => s.outline.on }],
+    ['color', 'outline.color', 'Outline color', { show: s => s.outline.on }]
+  ] },
+  { title: 'Decoration (garden)', items: [
+    ['select', 'deco.mode', 'Layout', [['none', 'None'], ['ends', 'Flowers at both ends'], ['corners', 'Corners'], ['tile', 'Tiled pattern'], ['scatter', 'Scattered garden'], ['vine-top', 'Vine along the top'], ['vine-bottom', 'Vine along the bottom'], ['vine-both', 'Vines top and bottom']]],
+    ['select', 'deco.sprite', 'Sprite', [['blossom', 'Blossom (3 px)'], ['daisy', 'Daisy'], ['tulip', 'Tulip'], ['rose', 'Rose'], ['sunflower', 'Sunflower'], ['clover', 'Clover'], ['leaf', 'Leaf'], ['butterfly', 'Butterfly'], ['custom', 'My uploaded sprite']], { show: s => ['ends', 'corners', 'tile', 'scatter'].includes(s.deco.mode) }],
+    ['range', 'deco.density', 'Density', 1, 10, 1, { show: s => ['tile', 'scatter', 'vine-top', 'vine-bottom', 'vine-both'].includes(s.deco.mode) }],
+    ['btn', 'garden', 'Reshuffle layout', { show: s => ['scatter', 'vine-top', 'vine-bottom', 'vine-both'].includes(s.deco.mode) }],
+    ['palette', { show: s => s.deco.mode !== 'none' }],
+    ['color', 'deco.petal', 'Petal color', { show: s => s.deco.mode !== 'none' }],
+    ['color', 'deco.center', 'Flower center color', { show: s => s.deco.mode !== 'none' }],
+    ['color', 'deco.leaf', 'Leaf and vine color', { show: s => s.deco.mode !== 'none' }],
+    ['range', 'deco.alpha', 'Opacity', 10, 100, 1, { unit: '%', show: s => s.deco.mode !== 'none' }],
+    ['check', 'deco.clear', 'Keep the text area clear', { show: s => s.deco.mode !== 'none' }],
+    ['check', 'deco.over', 'Draw on top of the text', { show: s => s.deco.mode !== 'none' }],
+    ['btn', 'upload', 'Upload your own sprite (PNG, up to 16 px)']
+  ] },
+  { title: 'Pixel icon', items: [
+    ['select', 'icon.name', 'Icon', [['none', 'None'], ['star', 'Star'], ['crown', 'Crown'], ['heart', 'Heart'], ['diamond', 'Diamond'], ['shield', 'Shield'], ['skull', 'Skull']]],
+    ['select', 'icon.side', 'Side', [['left', 'Left of text'], ['right', 'Right of text']], { show: s => s.icon.name !== 'none' }],
+    ['range', 'icon.gap', 'Gap', 0, 6, 1, { show: s => s.icon.name !== 'none' }]
+  ] },
+  { title: 'Plugin export', open: true, items: [
+    ['select', 'plugin', 'Your plugin', [['nexo', 'Nexo'], ['itemsadder', 'ItemsAdder'], ['oraxen', 'Oraxen']]],
+    ['text', 'nexo.id', 'Tag ID (blank = use the tag text)'],
+    ['text', 'nexo.namespace', 'ItemsAdder namespace (your content folder)', { show: s => s.plugin === 'itemsadder' }],
+    ['text', 'nexo.folder', 'Texture folder', { show: s => s.plugin !== 'itemsadder' }],
+    ['text', 'nexo.iaFolder', 'Texture folder', { show: s => s.plugin === 'itemsadder' }],
+    ['check', 'nexo.ascentAuto', 'Line up with the chat text automatically'],
+    ['range', 'nexo.ascent', 'Ascent (how high the tag sits)', 0, 32, 1, { show: s => !s.nexo.ascentAuto }],
+    ['text', 'nexo.placeholder', 'Chat shortcut (optional, like :owner:)', { show: s => s.plugin !== 'itemsadder' }],
+    ['check', 'nexo.tabcomplete', 'Suggest the shortcut while typing', { show: s => s.plugin !== 'itemsadder' && s.nexo.placeholder.trim() !== '' }],
+    ['text', 'nexo.permission', 'Permission (optional)', { show: s => s.plugin !== 'itemsadder' }]
+  ] },
+  { title: 'Export', open: true, items: [
+    ['select', 'out.scale', 'PNG scale', [[1, '1x (native pixels)'], [2, '2x'], [3, '3x'], [4, '4x'], [6, '6x'], [8, '8x'], [12, '12x'], [16, '16x']]],
+    ['range', 'out.margin', 'Transparent margin', 0, 16, 1, { unit: 'px' }]
+  ] }
+];
+
+function buildControls() {
+  const root = $('#controls');
+  for (const sec of UI) {
+    const d = document.createElement('details'); d.open = !!sec.open;
+    d.innerHTML = `<summary>${sec.title}</summary><div class="body"></div>`;
+    const body = $('.body', d);
+    for (const it of sec.items) {
+      const [type, key, label, a, b, c, o] = it;
+      const wrap = document.createElement('div'); wrap.className = 'row';
+      let show = null;
+      if (type === 'btn') { show = a && a.show; wrap.innerHTML = '<button class="btn small" data-act2="' + key + '">' + label + '</button>'; }
+      else if (type === 'palette') { show = key && key.show; wrap.innerHTML = '<label>Garden palette</label><select data-pal><option value="">Choose a palette...</option>' + PALETTES.map((p, i) => '<option value="' + i + '">' + p[0] + '</option>').join('') + '</select>'; }
+      else if (type === 'looks') { wrap.innerHTML = '<div class="looks" id="looks"></div>'; }
+      else if (type === 'font') {
+        wrap.innerHTML = `<label>Pixel font</label><select data-k="font"></select>`;
+      } else if (type === 'fill') {
+        const o2 = label || {}; show = o2.show;
+        wrap.innerHTML = `<div class="fill" data-fill="${key}"></div>`;
+        editors[key] = mountFill($('.fill', wrap), key, !!o2.auto);
+      } else if (type === 'text') { show = a && a.show; wrap.innerHTML = `<label>${label}</label><input type="text" data-k="${key}" maxlength="40" autocomplete="off">`; }
+      else if (type === 'select') { wrap.innerHTML = `<label>${label}</label><select data-k="${key}">${opt(a)}</select>`; show = b && b.show; }
+      else if (type === 'range') {
+        show = o && o.show;
+        wrap.innerHTML = `<label><span>${label}</span><output data-unit="${(o && o.unit) || ''}"></output></label><input type="range" data-k="${key}" min="${a}" max="${b}" step="${c}">`;
+      } else if (type === 'check') { wrap.classList.add('chk'); show = a && a.show; wrap.innerHTML = `<label><input type="checkbox" data-k="${key}"><span>${label}</span></label>`; }
+      else if (type === 'color') { wrap.classList.add('inline'); show = a && a.show; wrap.innerHTML = `<label>${label}</label><input type="color" data-k="${key}">`; }
+      rows.push({ el: wrap, show });
+      body.appendChild(wrap);
+    }
+    root.appendChild(d);
+  }
+  root.addEventListener('input', e => {
+    const t = e.target, k = t.dataset && t.dataset.k;
+    if (!k) return;
+    const cur = getp(state, k);
+    let v = t.type === 'checkbox' ? t.checked : t.type === 'range' ? Number(t.value) : typeof cur === 'number' ? Number(t.value) : t.value;
+    setp(state, k, v);
+    const out = t.parentElement.querySelector('output'); if (out) out.textContent = v + out.dataset.unit;
+    visibility(); change();
+  });
+}
+
+function visibility() { rows.forEach(r => r.el.classList.toggle('hidden', !!r.show && !r.show(state))); }
+
+function syncControls() {
+  document.querySelectorAll('#controls [data-k]').forEach(t => {
+    const v = getp(state, t.dataset.k);
+    if (t.type === 'checkbox') t.checked = v; else t.value = v;
+    const out = t.parentElement.querySelector('output'); if (out) out.textContent = v + out.dataset.unit;
+  });
+  Object.values(editors).forEach(e => e.sync());
+  visibility();
+}
+
+/* fill editor: solid / gradient (/ auto for borders) */
+function mountFill(host, key, allowAuto) {
+  host.dataset.mode = 'solid';
+  host.innerHTML = `
+    <div class="seg" data-role="mode">${allowAuto ? '<button data-m="auto">Auto</button>' : ''}<button data-m="solid">Solid</button><button data-m="gradient">Gradient</button></div>
+    <div class="fe-auto"><div class="row"><label>Darkness<output data-unit="%"></output></label><input type="range" min="0" max="90" step="1" data-k="borderDark"></div></div>
+    <div class="fe-solid"><div class="row inline"><label>Color</label><input type="color" data-r="color"></div><div class="sw">${SWATCHES.map(c => `<button data-sw="${c}" style="background:${c}" aria-label="${c}"></button>`).join('')}</div></div>
+    <div class="fe-grad">
+      <div class="bar"></div>
+      <div class="stops"></div>
+      <div class="rowbtns"><button class="btn small" data-act="add">+ Stop</button><button class="btn small" data-act="rev">Reverse</button><button class="btn small primary" data-act="rand">Random gradient</button></div>
+      <div class="row"><label>Angle<output data-unit="deg"></output></label><input type="range" min="0" max="360" step="15" data-r="angle"></div>
+      <div class="row"><label>Pixel steps (0 = smooth)<output></output></label><input type="range" min="0" max="12" step="1" data-r="steps"></div>
+      <div class="presets">${Object.entries(GRADS).map(([n, c]) => `<button title="${n}" data-preset="${n}" style="background:linear-gradient(90deg,${c.join(',')})"></button>`).join('')}</div>
+    </div>`;
+  const q = s => host.querySelector(s), spec = () => state[key];
+  const css = () => `linear-gradient(90deg, ${[...spec().stops].sort((a, b) => a.p - b.p).map(x => `${x.c} ${x.p * 100}%`).join(',')})`;
+  const stopsEl = q('.stops');
+  function buildStops() {
+    const s = spec();
+    stopsEl.innerHTML = s.stops.map((st, i) => `<div class="stop"><input type="color" value="${st.c}" data-si="${i}" data-f="c"><input type="range" min="0" max="100" value="${Math.round(st.p * 100)}" data-si="${i}" data-f="p"><button data-rm="${i}" ${s.stops.length <= 2 ? 'disabled' : ''} aria-label="Remove stop">×</button></div>`).join('');
+  }
+  function sync() {
+    const s = spec();
+    if (s.mode === 'auto' && !allowAuto) s.mode = 'solid';
+    host.dataset.mode = s.mode;
+    host.querySelectorAll('[data-m]').forEach(b => b.classList.toggle('on', b.dataset.m === s.mode));
+    q('[data-r=color]').value = s.color;
+    const ang = q('[data-r=angle]'); ang.value = s.angle; ang.previousElementSibling.querySelector('output').textContent = s.angle + 'deg';
+    const stp = q('[data-r=steps]'); stp.value = s.steps; stp.previousElementSibling.querySelector('output').textContent = s.steps || 'off';
+    q('.bar').style.background = css();
+    buildStops();
+  }
+  host.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    const s = spec();
+    if (b.dataset.m) { s.mode = b.dataset.m; }
+    else if (b.dataset.sw) { s.color = b.dataset.sw; s.mode = 'solid'; }
+    else if (b.dataset.preset) { const c = GRADS[b.dataset.preset]; s.stops = evenStops(c); s.color = c[0]; s.mode = 'gradient'; }
+    else if (b.dataset.rm) { s.stops.splice(Number(b.dataset.rm), 1); }
+    else if (b.dataset.act === 'add' && s.stops.length < 6) {
+      const sorted = [...s.stops].sort((x, y) => x.p - y.p);
+      s.stops.push({ c: rgb2hex(mixc(hex2rgb(sorted[0].c), hex2rgb(sorted[sorted.length - 1].c), 0.5)), p: 0.5 });
+    }
+    else if (b.dataset.act === 'rev') { s.stops = s.stops.map(x => ({ c: x.c, p: 1 - x.p })); }
+    else if (b.dataset.act === 'rand') { Object.assign(s, randomGradient()); }
+    else return;
+    sync(); change();
+  });
+  host.addEventListener('input', e => {
+    const t = e.target, s = spec();
+    if (t.dataset.k) return;                       // handled by the generic binder
+    if (t.dataset.r === 'color') s.color = t.value;
+    else if (t.dataset.r === 'angle') { s.angle = Number(t.value); t.previousElementSibling.querySelector('output').textContent = s.angle + 'deg'; }
+    else if (t.dataset.r === 'steps') { s.steps = Number(t.value); t.previousElementSibling.querySelector('output').textContent = s.steps || 'off'; }
+    else if (t.dataset.si) { const st = s.stops[Number(t.dataset.si)]; if (t.dataset.f === 'c') st.c = t.value; else st.p = Number(t.value) / 100; }
+    q('.bar').style.background = css();
+    change();
+  });
+  return { sync };
+}
+
+/* ---------- fonts ---------- */
+function refreshFontOptions() {
+  const sel = $('select[data-k=font]'); if (!sel) return;
+  sel.innerHTML = opt(Object.entries(FONTS).map(([k, f]) => [k, f.label]));
+  sel.value = state.font;
+}
+
+async function loadSprite(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    if (bmp.width > 16 || bmp.height > 16) { toast('Sprite is ' + bmp.width + 'x' + bmp.height + ' px. Keep it 16 px or smaller.'); return; }
+    const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+    const g = c.getContext('2d'); g.drawImage(bmp, 0, 0);
+    const d = g.getImageData(0, 0, c.width, c.height).data, px = [];
+    for (let i = 0; i < d.length; i += 4) px.push(d[i + 3] < 128 ? '' : rgb2hex([d[i], d[i + 1], d[i + 2]]));
+    state.deco.custom = { w: c.width, h: c.height, px }; state.deco.sprite = 'custom';
+    if (state.deco.mode === 'none') state.deco.mode = 'ends';
+    syncControls(); change(); toast('Sprite loaded (' + c.width + 'x' + c.height + ')');
+  } catch (err) { toast('Could not read that image'); }
+}
+
+/* ---------- ui plumbing ---------- */
+let raf = 0;
+function change() { cancelAnimationFrame(raf); raf = requestAnimationFrame(refresh); persist(); }
+
+function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toast.t); toast.t = setTimeout(() => t.classList.remove('on'), 2200); }
+function download(blob, name) { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000); }
+const toBlob = c => new Promise(r => c.toBlob(r, 'image/png'));
+const tagId = (st, name) => slug(st.nexo.id || name || st.text);
+
+function refresh() {
+  const L = buildLayout(state), m = state.out.margin;
+  const auto = clamp(Math.floor(520 / (L.W + 2 * m)), 2, 16);
+  const z = ui.zoom || auto;
+  const pv = $('#preview'), r = renderTag(state, z);
+  pv.width = r.canvas.width; pv.height = r.canvas.height;
+  pv.getContext('2d').drawImage(r.canvas, 0, 0);
+  const s = state.out.scale;
+  $('#dims').textContent = `Native ${L.W + 2 * m} x ${L.H + 2 * m} px  -  PNG export ${(L.W + 2 * m) * s} x ${(L.H + 2 * m) * s} px  -  Texture height ${state.height + 2 * m}, ascent ${ascentOf(state) + m}`;
+  renderChat();
+  renderLooks();
+  $('#yaml').textContent = configText([{ id: tagId(state), st: state }]);
+  $('#cfgTitle').textContent = 'Config for ' + PLUGINS[state.plugin].label;
+  $('#cfgHint').textContent = pluginHint(state);
+}
+
+const NAMES = ['Steve', 'Alex', 'Herobrine', 'Notch'], MSGS = ['Welcome to the server!', 'Anyone up for a raid tonight?', 'GG that was close', 'Check the new shop at /warp'];
+function renderChat() {
+  const z = 3, pad = 8, lineH = 9 * z;
+  const entries = [{ st: state, name: NAMES[0], msg: MSGS[0] }, ...lib.slice(0, 3).map((e, i) => ({ st: merge(DEFAULT, e.state), name: NAMES[i + 1], msg: MSGS[i + 1] }))];
+  const c = $('#chat'); c.width = 560; c.height = entries.length * lineH + pad * 2;
+  const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
+  const sky = g.createLinearGradient(0, 0, 0, c.height); sky.addColorStop(0, '#5f93d6'); sky.addColorStop(1, '#3d6b2e');
+  g.fillStyle = sky; g.fillRect(0, 0, c.width, c.height);
+  g.fillStyle = 'rgba(0,0,0,.45)'; g.fillRect(0, pad - 2, c.width, entries.length * lineH + 4);
+  entries.forEach((e, i) => {
+    const base = pad + i * lineH + 7 * z;
+    const { canvas, L } = renderTag(e.st, z, { margin: 0 });
+    let x = pad;
+    g.drawImage(canvas, x, base - ascentOf(e.st) * z);
+    x += (L.W + 1) * z + 4 * z;
+    const text = e.name + ': ' + e.msg;
+    pixelText(g, text, x + z, base - 5 * z + z, z, '#3f3f3f');
+    pixelText(g, text, x, base - 5 * z, z, '#ffffff');
+  });
+}
+
+function renderLooks() {
+  const host = $('#looks'); if (!host) return;
+  if (!host.children.length) {
+    LOOKS.forEach(([name], i) => {
+      const b = document.createElement('button'); b.className = 'look'; b.dataset.i = i;
+      b.innerHTML = `<canvas></canvas><span>${name}</span>`;
+      host.appendChild(b);
+    });
+    host.addEventListener('click', e => {
+      const b = e.target.closest('.look'); if (!b) return;
+      state = lookState(LOOKS[Number(b.dataset.i)][1]);
+      syncControls(); change();
+    });
+  }
+  [...host.children].forEach((b, i) => {
+    const { canvas } = renderTag(lookState(LOOKS[i][1]), 3, { margin: 0 });
+    const cv = $('canvas', b); cv.width = canvas.width; cv.height = canvas.height;
+    cv.getContext('2d').drawImage(canvas, 0, 0);
+  });
+}
+function lookState(patch) {
+  const kept = {}; KEEP.forEach(k => { if (!(k in patch)) kept[k] = clone(state[k]); });
+  return merge(merge(DEFAULT, patch), kept);
+}
+
+/* ---------- library ---------- */
+function renderLib() {
+  const host = $('#lib'); host.innerHTML = '';
+  if (!lib.length) { host.innerHTML = '<span class="hint">Nothing saved yet. Design a tag, then press "Save to library".</span>'; return; }
+  lib.forEach((e, i) => {
+    const d = document.createElement('div'); d.className = 'item'; d.title = 'Click to load';
+    const cv = document.createElement('canvas');
+    const { canvas } = renderTag(merge(DEFAULT, e.state), 3, { margin: 0 });
+    cv.width = canvas.width; cv.height = canvas.height; cv.getContext('2d').drawImage(canvas, 0, 0);
+    d.append(cv);
+    d.insertAdjacentHTML('beforeend', `<span>${tagId(merge(DEFAULT, e.state), e.name)}</span><i data-del="${i}" title="Delete">×</i>`);
+    d.addEventListener('click', ev => {
+      if (ev.target.dataset.del !== undefined) { lib.splice(Number(ev.target.dataset.del), 1); renderLib(); persist(); renderChat(); return; }
+      state = merge(DEFAULT, e.state); syncControls(); change();
+    });
+    host.appendChild(d);
+  });
+}
+
+async function exportZip() {
+  if (!window.JSZip) { toast('The ZIP library did not load (it needs internet). Use Download PNG for each tag instead.'); return; }
+  const plugin = state.plugin, label = PLUGINS[plugin].label;
+  const items = lib.length ? lib.map(e => ({ name: e.name, st: merge(DEFAULT, e.state) })) : [{ name: state.text, st: state }];
+  const zip = new JSZip(), used = new Set(), ents = [];
+  for (const it of items) {
+    let id = tagId(it.st, it.name); while (used.has(id)) id += '_'; used.add(id);
+    zip.file(texturePath(plugin, it.st, id), await toBlob(renderTag(it.st, it.st.out.scale).canvas));
+    ents.push({ id, st: it.st });
+  }
+  const ns = slug(items[0].st.nexo.namespace);
+  const cfgFile = plugin === 'itemsadder' ? `contents/${ns}/tags.yml` : 'glyphs/tag-studio.yml';
+  zip.file(cfgFile, configText(ents, plugin));
+  const steps = {
+    itemsadder: ['Copy the "contents" folder from this ZIP into plugins/ItemsAdder/ on your server.', 'Run /iazip so the tags are added to the resource pack.'],
+    oraxen: ['Copy "glyphs" into plugins/Oraxen/ and the "pack" folder\'s textures into plugins/Oraxen/pack/.', 'Reload Oraxen so the tags are added to the resource pack.'],
+    nexo: ['Copy the .yml from "glyphs" into plugins/Nexo/glyphs/.', 'Put the PNGs from "textures" into your Nexo pack so they match the texture path in the .yml, then reload Nexo.']
+  }[plugin];
+  zip.file('README.txt', [`Tag Studio export for ${label}`, '', '1. ' + steps[0], '2. ' + steps[1], '3. Done! Each tag is named in the .yml file.', ''].join('\n'));
+  download(await zip.generateAsync({ type: 'blob' }), `tag-studio-${plugin}.zip`);
+  toast(`Exported ${ents.length} tag${ents.length > 1 ? 's' : ''} for ${label}`);
+}
+
+function surprise() {
+  const g = randomGradient();
+  state.shape = pick(['notched', 'pill', 'angled', 'arrow', 'square']);
+  state.bg = merge(state.bg, g); state.bg.mode = 'gradient';
+  state.border.mode = 'auto';
+  state.tfill = merge(DEFAULT.tfill, {});
+  state.shine.on = Math.random() < 0.5; state.shine.pos = 20 + Math.random() * 60 | 0;
+  state.gloss = pick([0, 0, 25, 40]);
+  syncControls(); change();
+}
+
+/* ---------- chat text, how-to and welcome popup ---------- */
+// Chat mock text uses the Slim pixel font so the page needs no extra font files.
+function pixelText(g, text, x, y, z, color) {
+  const f = FONTS.slim; let cx = x;
+  g.fillStyle = color;
+  for (const ch of text.toUpperCase()) {
+    const gl = f.glyphs[ch] || f.glyphs['?'];
+    gl.forEach((row, py) => { for (let px = 0; px < row.length; px++) if (row[px] === '#') g.fillRect(cx + px * z, y + py * z, z, z); });
+    cx += (gl[0].length + 1) * z;
+  }
+}
+
+function goTo(target) {
+  const flash = el => { el.classList.add('pulse'); setTimeout(() => el.classList.remove('pulse'), 1800); };
+  if (target.startsWith('#')) { const el = $(target); el.scrollIntoView({ behavior: 'smooth', block: 'center' }); flash(el); return; }
+  const d = [...document.querySelectorAll('#controls details')].find(x => x.querySelector('summary').textContent.trim() === target);
+  if (!d) return;
+  d.open = true; d.scrollIntoView({ behavior: 'smooth', block: 'start' }); flash(d);
+}
+
+function setupHowTo() {
+  const box = $('#howto'), btn = $('#howtoToggle');
+  btn.onclick = () => {
+    const closed = box.classList.toggle('collapsed');
+    btn.textContent = closed ? 'Show' : 'Hide';
+    btn.setAttribute('aria-expanded', String(!closed));
+  };
+  $('#steps').addEventListener('click', e => { const b = e.target.closest('[data-go]'); if (b) goTo(b.dataset.go); });
+}
+
+// The welcome popup opens on every visit, but not when the page is refreshed.
+let lastFocus = null;
+function openWelcome() {
+  const m = $('#welcome'); lastFocus = document.activeElement;
+  m.hidden = false; document.body.style.overflow = 'hidden';
+  $('#welcomeOk').focus();
+}
+function closeWelcome() {
+  const m = $('#welcome'); if (m.hidden) return;
+  m.hidden = true; document.body.style.overflow = '';
+  if (lastFocus && lastFocus.focus) lastFocus.focus();
+}
+function setupWelcome() {
+  document.querySelectorAll('#welcome [data-close]').forEach(el => el.addEventListener('click', closeWelcome));
+  document.addEventListener('keydown', e => {
+    if ($('#welcome').hidden) return;
+    if (e.key === 'Escape') closeWelcome();
+    if (e.key === 'Tab') {   // keep keyboard focus inside the popup
+      const items = [...document.querySelectorAll('#welcome button')];
+      const first = items[0], last = items[items.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    }
+  });
+  const nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+  const reloaded = nav ? nav.type === 'reload' : !!(performance.navigation && performance.navigation.type === 1);
+  if (!reloaded) openWelcome();
+}
+
+/* ---------- wiring ---------- */
+function init() {
+  load();
+  buildControls();
+  refreshFontOptions();
+  syncControls();
+  $('#controls').addEventListener('click', e => {
+    const b = e.target.closest('[data-act2]'); if (!b) return;
+    if (b.dataset.act2 === 'garden') { state.deco.seed = Math.floor(Math.random() * 1000); change(); }
+    if (b.dataset.act2 === 'upload') $('#spriteFile').click();
+  });
+  $('#controls').addEventListener('change', e => {
+    if (e.target.dataset.pal === undefined || e.target.value === '') return;
+    [state.deco.petal, state.deco.center, state.deco.leaf] = PALETTES[Number(e.target.value)][1];
+    e.target.value = ''; syncControls(); change();
+  });
+  $('#spriteFile').onchange = async e => { if (e.target.files[0]) await loadSprite(e.target.files[0]); e.target.value = ''; };
+  $('#zoom').onchange = e => { ui.zoom = Number(e.target.value); change(); };
+  $('#viewbg').onchange = e => { $('#view').className = 'view ' + e.target.value; };
+  $('#surprise').onclick = surprise;
+  $('#reset').onclick = () => { state = clone(DEFAULT); refreshFontOptions(); syncControls(); change(); };
+  $('#save').onclick = () => { lib.unshift({ name: state.text || 'tag', state: clone(state) }); renderLib(); renderChat(); persist(); toast('Saved to library'); };
+  $('#download').onclick = async () => {
+    download(await toBlob(renderTag(state, state.out.scale).canvas), tagId(state) + '.png');
+  };
+  $('#copy').onclick = async () => {
+    try { await navigator.clipboard.write([new ClipboardItem({ 'image/png': await toBlob(renderTag(state, state.out.scale).canvas) })]); toast('Copied PNG (transparent)'); }
+    catch (e) { toast('Clipboard blocked here. Use Download PNG.'); }
+  };
+  $('#copyYaml').onclick = async () => { try { await navigator.clipboard.writeText($('#yaml').textContent); toast('Config copied'); } catch (e) { toast('Clipboard blocked here'); } };
+  $('#zip').onclick = exportZip;
+  $('#backup').onclick = () => download(new Blob([JSON.stringify({ lib, state }, null, 1)], { type: 'application/json' }), 'tag-studio-backup.json');
+  $('#import').onclick = () => $('#importFile').click();
+  $('#importFile').onchange = async e => {
+    try {
+      const d = JSON.parse(await e.target.files[0].text());
+      if (Array.isArray(d.lib)) lib = d.lib;
+      if (d.state) state = merge(DEFAULT, d.state);
+      syncControls(); renderLib(); change(); toast('Imported');
+    } catch (err) { toast('That file is not a valid backup'); }
+    e.target.value = '';
+  };
+  renderLib();
+  refresh();
+  setupHowTo();
+  setupWelcome();
+}
+init();
+</script>
+</body>
+</html>
